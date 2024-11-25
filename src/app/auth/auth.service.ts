@@ -1,9 +1,9 @@
 import { GenericException } from '@commons/exceptions/generic.exception';
 import { PrismaService } from '@libraries/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AuthRegisterInput } from './dto/auth.dto';
+import { AuthLoginInput, AuthRegisterInput } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +25,6 @@ export class AuthService {
       data: {
         phoneNumber: dto.phoneNumber,
         password: hashedPassword,
-        username: dto.username ? dto.username : dto.phoneNumber,
       },
     });
 
@@ -33,5 +32,27 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
 
     return { user: newUser, accessToken: token };
+  }
+
+  async login(dto: AuthLoginInput) {
+    const user = await this.prisma.user.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+
+    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = {
+      id: user.id,
+      username: user.username,
+      phoneNumber: user.phoneNumber,
+    };
+    const token = this.jwtService.sign(payload);
+
+    return {
+      accessToken: token,
+      user: user,
+    };
   }
 }

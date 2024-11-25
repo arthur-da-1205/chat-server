@@ -14,12 +14,82 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  phoneNumber String   @unique
-  username    String?
-  password    String
-  avatarUrl   String?
-  status      String?  @default("Hey there! I am using this app.")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String           @id @default(uuid())
+  username       String?          @unique
+  phoneNumber    String           @unique
+  profilePicture String?
+  status         String?
+  password       String
+  chats          ChatMember[]
+  messages       Message[]        @relation("UserMessages")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  MessageReceipt MessageReceipt[]
+
+  @@map("user")
+}
+
+model Chat {
+  id        String       @id @default(uuid())
+  chatType  ChatType
+  createdBy String
+  name      String?
+  members   ChatMember[]
+  messages  Message[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("chat")
+}
+
+model ChatMember {
+  id       String   @id @default(uuid())
+  chatId   String   @map("chat_id")
+  chat     Chat     @relation(fields: [chatId], references: [id])
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id])
+  isAdmin  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  @@unique([chatId, userId])
+  @@map("chat_member")
+}
+
+model Message {
+  id            String           @id @default(uuid())
+  chatId        String           @map("chat_id")
+  chat          Chat             @relation(fields: [chatId], references: [id])
+  senderId      String           @map("sender_id")
+  sender        User             @relation("UserMessages", fields: [senderId], references: [id])
+  content       String
+  messageType   MessageType
+  attachmentUrl String?
+  createdAt     DateTime         @default(now())
+  readReceipts  MessageReceipt[]
+
+  @@map("message")
+}
+
+model MessageReceipt {
+  id        String    @id @default(uuid())
+  messageId String    @map("message_id")
+  message   Message   @relation(fields: [messageId], references: [id])
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+
+  @@unique([messageId, userId])
+  @@map("message_receipt")
+}
+
+enum ChatType {
+  private
+  group
+}
+
+enum MessageType {
+  text
+  image
+  file
 }

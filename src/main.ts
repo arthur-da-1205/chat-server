@@ -6,6 +6,7 @@ import {
 } from '@nestjs/platform-fastify';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   dotenv.config();
@@ -13,6 +14,8 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter(),
   );
+
+  app.useGlobalPipes(new ValidationPipe());
   await app.listen(Number(config.getPort()) ?? 3000);
 }
 bootstrap();
